@@ -1,0 +1,10 @@
+.db/
+*.db
+*.db-wal
+*.db-shm
+*.log
+uploads/
+node_modules/
+progress.txt
+config.json
+deploy/wordland.service

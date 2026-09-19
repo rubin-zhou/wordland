@@ -1,0 +1,15 @@
+{
+  "name": "wordland",
+  "version": "1.0.0",
+  "description": "Local-first vocabulary app for kids (wordland / 单词乐园)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1",
+    "sharp": "^0.33.5"
+  }
+}

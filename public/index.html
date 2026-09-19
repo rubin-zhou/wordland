@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌈 Wordland · 单词乐园</title>
+<link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🌈 单词乐园</div>
+  <div class="mascot-mini" id="mascotMini">🦫</div>
+  <div class="top-xp" id="topXp">⭐0</div>
+  <div class="top-streak" id="topStreak">🔥0</div>
+  <button class="icon-btn" id="soundToggle" title="音效">🔊</button>
+</header>
+
+<nav class="tabbar">
+  <button class="tab active" data-view="home">🏠 主页</button>
+  <button class="tab" data-view="import">📥 导入</button>
+  <button class="tab" data-view="test">🎮 测验</button>
+  <button class="tab" data-view="study">📖 背诵</button>
+  <button class="tab" data-view="manage">📚 词库</button>
+  <button class="tab" data-view="stats">📊 统计</button>
+</nav>
+
+<main id="view"></main>
+
+<div id="toast"></div>
+<div id="confetti"></div>
+
+<script src="sound.js"></script>
+<script src="app.js?v=5"></script>
+</body>
+</html>

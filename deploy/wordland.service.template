@@ -1,0 +1,18 @@
+[Unit]
+Description=Vocab Recite - 小学单词复习服务
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@WORKDIR@
+ExecStart=@NODE@ @WORKDIR@/server.js
+Environment=NODE_ENV=production
+Environment=PORT=@PORT@
+Environment=LAN_IP=@LAN_IP@
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
