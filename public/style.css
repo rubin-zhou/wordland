@@ -367,6 +367,9 @@ textarea:focus, input:focus, select:focus { border-color: var(--primary); }
 .hi-emoji { font-size: 1em; line-height: 1.15; }
 .hi-base { width: 1.5em; height: .2em; border-radius: 50%; opacity: .8; margin-top: -.14em; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
 .home-item:active .hi-emoji, .home-item:active .hi-base { transform: scale(.86); }
+.hi-drag { touch-action: none; cursor: grab; }
+.hi-drag.dragging { cursor: grabbing; z-index: 99 !important; }
+.hi-drag.dragging .hi-emoji { filter: brightness(1.1) drop-shadow(0 8px 8px rgba(0,0,0,.25)); }
 /* 没买的：半透明虚位 + 小锁价格，点一下直接买 */
 .item-slot .hi-emoji { opacity: .3; filter: grayscale(.95); }
 .item-slot::after {

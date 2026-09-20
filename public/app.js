@@ -225,7 +225,7 @@ function renderMyRoom(root) {
   room.items.slice().sort((a, b) => (a.pos[1] - b.pos[1]) || (a.wall ? 1 : 0) - (b.wall ? 1 : 0))
     .forEach((i) => scene.append(homeItemBtn(room, i)));
   root.append(scene);
-  root.append(el('p', { class: 'sub', style: 'text-align:center', text: '💡 拥有的东西点一下换颜色；虚线🔒的格子点一下就能用 🔥 买回家～' }));
+  root.append(el('p', { class: 'sub', style: 'text-align:center', text: '💡 点一下换颜色；按住不放可以拖到任意位置；虚线🔒格子点一下用 🔥 买回家' }));
 }
 
 // 花 🔥 火力购买；买过的可以换颜色（不花钱）
@@ -277,12 +277,13 @@ function renderShopOverlay(root) {
 
 function homeItemBtn(room, item) {
   const ow = ownedEntry(room.id, item.id);
-  const [x, y] = item.pos;
-  const pos = `left:${x}%; top:${y}%; z-index:${item.wall ? 40 : 10 + Math.round(y)}; transform:${item.wall ? 'translate(-50%,-50%)' : 'translate(-50%,-100%)'}`;
+  const posOf = () => (ow && ow.x != null && ow.y != null) ? [ow.x, ow.y] : item.pos;
+  const place = (x, y) => `left:${x}%; top:${y}%; z-index:${item.wall ? 40 : 10 + Math.round(y)}; transform:${item.wall ? 'translate(-50%,-50%)' : 'translate(-50%,-100%)'}`;
+  const [dx, dy] = posOf();
   if (!ow) {
     return el('button', {
       class: 'home-item item-slot' + (item.big ? ' hi-big' : '') + (item.wall ? ' hi-wall' : ''),
-      style: pos, title: `还没买「${item.name}」— 点一下花 🔥${item.cost} 搬进来`,
+      style: place(dx, dy), title: `还没买「${item.name}」— 点一下花 🔥${item.cost} 搬进来`,
       onclick: () => buyHomeItem(room, item),
     }, [
       el('span', { class: 'hi-emoji', text: item.emoji }),
@@ -293,11 +294,55 @@ function homeItemBtn(room, item) {
   const glow = item.anim === 'glow' ? ' drop-shadow(0 0 10px rgba(255,205,80,0.95))' : '';
   const kids = [el('span', { class: 'hi-emoji' + (item.anim && item.anim !== 'glow' ? ' hi-' + item.anim : ''), style: `filter:${colr.filter}${glow}`, text: item.emoji })];
   if (!item.wall) kids.push(el('span', { class: 'hi-base', style: `background:${colr.hex}` }));
-  return el('button', {
-    class: 'home-item' + (item.big ? ' hi-big' : '') + (item.wall ? ' hi-wall' : ''),
-    style: pos, title: `${item.name}（点一下换颜色）`,
-    onclick: () => { Sound.tap(); openColorPop(room, item); },
+  const btn = el('button', {
+    class: 'home-item hi-drag' + (item.big ? ' hi-big' : '') + (item.wall ? ' hi-wall' : ''),
+    style: place(dx, dy), title: `${item.name}（点一下换颜色，按住可以拖动摆位置）`,
   }, kids);
+  makeDraggable(btn, room, item, ow);
+  return btn;
+}
+
+// 按住左键（或手指按住）拖动家具，松手保存位置；没移动就是普通点击（换颜色）
+function makeDraggable(btn, room, item, ow) {
+  btn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const scene = btn.closest('.room-scene');
+    if (!scene) return;
+    const rect = scene.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const base = item.wall ? 'translate(-50%,-50%)' : 'translate(-50%,-100%)';
+    let moved = false, cur = null;
+    btn.setPointerCapture(e.pointerId);
+    const onMove = (ev) => {
+      const px = (ev.clientX - rect.left) / rect.width * 100;
+      const py = (ev.clientY - rect.top) / rect.height * 100;
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 7) return;
+      if (!moved) { moved = true; Sound.pop(); }
+      btn.classList.add('dragging');
+      const x = Math.min(97, Math.max(3, px));
+      const y = item.wall ? Math.min(30, Math.max(4, py)) : Math.min(99.5, Math.max(38, py));
+      cur = [x, y];
+      btn.style.left = x + '%';
+      btn.style.top = y + '%';
+      btn.style.transform = base + ' scale(1.08)';
+    };
+    const onUp = async (ev) => {
+      btn.removeEventListener('pointermove', onMove);
+      btn.removeEventListener('pointerup', onUp);
+      btn.removeEventListener('pointercancel', onUp);
+      btn.classList.remove('dragging');
+      if (!moved) { Sound.tap(); openColorPop(room, item); return; }
+      try {
+        const r = await api('/api/home/move', { method: 'POST', body: { room: room.id, item: item.id, x: cur[0], y: cur[1] } });
+        ow.x = r.x; ow.y = r.y;
+        Sound.click();
+      } catch (err) { toast(err.message, 2500); }
+      renderMyHome();
+    };
+    btn.addEventListener('pointermove', onMove);
+    btn.addEventListener('pointerup', onUp);
+    btn.addEventListener('pointercancel', onUp);
+  });
 }
 
 async function buyHomeItem(room, item) {

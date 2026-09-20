@@ -420,7 +420,7 @@ app.post('/api/xp', (req, res) => {
 
 // ---------------------------------------------------------------- my home (我的家)
 app.get('/api/home', (_req, res) => {
-  const owned = db.prepare('SELECT room, item, color FROM home_items').all();
+  const owned = db.prepare('SELECT room, item, color, x, y FROM home_items').all();
   res.json({ fire: Number(getSetting('streak', 0)), rooms: home.ROOMS, owned });
 });
 
@@ -453,6 +453,22 @@ app.post('/api/home/color', (req, res) => {
     .run(String(color), room, item);
   if (!info.changes) return res.status(404).json({ error: '还没有买过这个东西' });
   res.json({ ok: true });
+});
+
+// POST /api/home/move  { room, item, x, y }  -- 摆放自定义位置（场景百分比坐标）
+app.post('/api/home/move', (req, res) => {
+  const { room, item, x, y } = req.body || {};
+  const found = home.findItem(String(room || ''), String(item || ''));
+  if (!found) return res.status(404).json({ error: '没有这个东西' });
+  const fx = Number(x), fy = Number(y);
+  if (!Number.isFinite(fx) || !Number.isFinite(fy)) return res.status(400).json({ error: '位置无效' });
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const cx = clamp(fx, 3, 97);
+  const cy = found.item.wall ? clamp(fy, 4, 30) : clamp(fy, 38, 100);
+  const info = db.prepare('UPDATE home_items SET x=?, y=? WHERE room=? AND item=?')
+    .run(cx, cy, room, item);
+  if (!info.changes) return res.status(404).json({ error: '还没有买过这个东西' });
+  res.json({ ok: true, x: cx, y: cy });
 });
 
 // ---------------------------------------------------------------- static + serve
