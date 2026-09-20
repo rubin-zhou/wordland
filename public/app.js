@@ -17,6 +17,8 @@ const el = (tag, attrs, children) => {
 
 const state = {
   view: 'home',
+  shopOpen: false,     // 小商店 drawer (我的家)
+  shopRoom: '',        // room tab currently shown in the drawer
   stats: null,
   pages: [],
   categories: [],
@@ -122,6 +124,7 @@ VIEWS.home = async (root) => {
     el('div', { class: 'quick-btns' }, [
       el('button', { class: 'btn big', onclick: () => show('test'), text: '🎮 开始测验' }),
       el('button', { class: 'btn big alt', onclick: () => show('import'), text: '📥 导入新单词' }),
+      el('button', { class: 'btn big', onclick: () => show('myhome'), text: '🏡 装扮我的家' }),
     ]),
     el('div', { class: 'stats-mini' }, [
       el('div', { class: 'stat-chip', html: `⭐ <b>${xp}</b> 经验` }),
@@ -140,6 +143,212 @@ VIEWS.home = async (root) => {
     root.append(dcard);
   }
 };
+
+// ================================================================ MY HOME (我的家)
+const HOME_COLORS = {
+  orig:   { name: '原色', hex: '#e8e0ea', filter: '' },
+  red:    { name: '红色', hex: '#ff8a8a', filter: 'hue-rotate(-35deg) saturate(1.35)' },
+  orange: { name: '橙色', hex: '#ffb066', filter: 'hue-rotate(-15deg) saturate(1.25)' },
+  yellow: { name: '黄色', hex: '#ffe066', filter: 'hue-rotate(35deg)' },
+  green:  { name: '绿色', hex: '#8fd8a0', filter: 'hue-rotate(75deg)' },
+  blue:   { name: '蓝色', hex: '#7fb8ff', filter: 'hue-rotate(160deg)' },
+  purple: { name: '紫色', hex: '#c39bff', filter: 'hue-rotate(230deg)' },
+  pink:   { name: '粉色', hex: '#ffa6d5', filter: 'hue-rotate(290deg) saturate(1.2)' },
+};
+
+VIEWS.myhome = async (root) => {
+  try {
+    state.home = await api('/api/home');
+  } catch (e) { toast(e.message, 2500); return; }
+  streak = state.home.fire;
+  renderXp();
+  renderMyHome();
+};
+
+function ownedEntry(roomId, itemId) {
+  return (state.home?.owned || []).find((o) => o.room === roomId && o.item === itemId);
+}
+
+function renderMyHome() {
+  const root = $('#view');
+  root.innerHTML = '';
+  if (!state.home) return;
+  if (state.homeRoom) renderMyRoom(root); else renderRooms(root);
+  if (state.shopOpen) renderShopOverlay(root);
+}
+
+function homeTopBar(title) {
+  const kids = [];
+  if (state.homeRoom) kids.push(el('button', { class: 'btn sm', text: '↩️ 房间', onclick: () => { Sound.tap(); state.homeRoom = null; renderMyHome(); } }));
+  kids.push(el('h2', { class: 'page-title', style: 'margin:0;flex:1', text: title }));
+  kids.push(el('span', { class: 'fire-chip', text: `🔥${state.home.fire}` }));
+  kids.push(el('button', {
+    class: 'btn sm ' + (state.shopOpen ? 'bad' : 'ok'), text: state.shopOpen ? '✕ 收起' : '🛒 小商店',
+    onclick: () => { Sound.tap(); state.shopOpen = !state.shopOpen; renderMyHome(); },
+  }));
+  return el('div', { class: 'row home-top' }, kids);
+}
+
+function renderRooms(root) {
+  root.append(homeTopBar('🏡 我的家'));
+  root.append(el('p', { class: 'sub house-tip', text: '认真背单词攒 🔥 火力，点每个房间进去布置你的小窝吧～' }));
+  const house = el('div', { class: 'dollhouse' });
+  house.append(el('div', { class: 'roof' }));
+  state.home.rooms.forEach((r) => house.append(houseRoomTile(r)));
+  root.append(house);
+}
+
+function houseRoomTile(room) {
+  const items = el('div', { class: 'tile-items' });
+  const owned = room.items.filter((i) => ownedEntry(room.id, i.id));
+  owned.forEach((i) => {
+    const colr = HOME_COLORS[ownedEntry(room.id, i.id).color] || HOME_COLORS.orig;
+    items.append(el('span', { class: 'tile-emoji', style: `filter:${colr.filter}`, text: i.emoji }));
+  });
+  if (!owned.length) items.append(el('span', { class: 'tile-empty', text: '空空如也' }));
+  return el('button', {
+    class: `room-tile area-${room.id} room-${room.id}`,
+    onclick: () => { Sound.tap(); state.homeRoom = room.id; renderMyHome(); },
+  }, [
+    el('span', { class: 'tile-name', text: `${room.icon} ${room.name}` }),
+    el('span', { class: 'tile-count', text: `${owned.length}/${room.items.length}` }),
+    items,
+  ]);
+}
+
+function renderMyRoom(root) {
+  const room = state.home.rooms.find((r) => r.id === state.homeRoom) || state.home.rooms[0];
+  state.homeRoom = room.id;
+  root.append(homeTopBar(`${room.icon} ${room.name}`));
+  const scene = el('div', { class: 'room-scene room-' + room.id });
+  scene.append(el('div', { class: 'sc-wall' }), el('div', { class: 'sc-floor' }));
+  room.items.slice().sort((a, b) => (a.pos[1] - b.pos[1]) || (a.wall ? 1 : 0) - (b.wall ? 1 : 0))
+    .forEach((i) => scene.append(homeItemBtn(room, i)));
+  root.append(scene);
+  root.append(el('p', { class: 'sub', style: 'text-align:center', text: '💡 拥有的东西点一下换颜色；虚线🔒的格子点一下就能用 🔥 买回家～' }));
+}
+
+// 花 🔥 火力购买；买过的可以换颜色（不花钱）
+function shopItemRow(room, item) {
+  const ow = ownedEntry(room.id, item.id);
+  const colr = HOME_COLORS[ow ? ow.color : 'orig'] || HOME_COLORS.orig;
+  const row = el('div', { class: 'shop-row' }, [
+    el('span', { class: 'shop-emoji', style: `filter:${colr.filter}`, text: item.emoji }),
+    el('span', { class: 'shop-name', text: item.name }),
+  ]);
+  if (ow) {
+    row.append(
+      el('span', { class: 'owned-chip', text: '已拥有 ✔' }),
+      el('button', { class: 'btn sm alt', text: '🎨 配色', onclick: () => openColorPop(room, item) }),
+    );
+  } else {
+    const afford = state.home.fire >= item.cost;
+    const btn = el('button', { class: 'btn sm' + (afford ? ' ok' : ' alt'), text: afford ? `买来 🔥${item.cost}` : '🔥 不够', onclick: () => buyHomeItem(room, item) });
+    if (!afford) btn.disabled = true;
+    row.append(el('span', { class: 'cost-chip', title: `需要 ${item.cost} 点火力`, text: `🔥${item.cost}` }), btn);
+  }
+  return row;
+}
+
+function renderShopOverlay(root) {
+  if (!state.shopRoom || !state.home.rooms.some((r) => r.id === state.shopRoom)) {
+    state.shopRoom = state.homeRoom || 'kitchen';
+  }
+  const room = state.home.rooms.find((r) => r.id === state.shopRoom) || state.home.rooms[0];
+  const mask = el('div', { class: 'shop-mask', onclick: (e) => { if (e.target === mask) { Sound.tap(); state.shopOpen = false; renderMyHome(); } } });
+  const tabs = el('div', { class: 'shop-tabs' });
+  state.home.rooms.forEach((r) => tabs.append(el('button', {
+    class: 'shop-tab' + (r.id === room.id ? ' on' : ''),
+    text: `${r.icon} ${r.name}`,
+    onclick: () => { Sound.tap(); state.shopRoom = r.id; renderMyHome(); },
+  })));
+  const list = el('div', {});
+  room.items.forEach((item) => list.append(shopItemRow(room, item)));
+  mask.append(el('div', { class: 'shop-panel' }, [
+    el('div', { class: 'row', style: 'align-items:center' }, [
+      el('h2', { style: 'margin:0;flex:1', text: '🛒 小商店' }),
+      el('button', { class: 'btn sm', text: '✕ 收起', onclick: () => { Sound.tap(); state.shopOpen = false; renderMyHome(); } }),
+    ]),
+    el('p', { class: 'sub', text: '花 🔥 火力就能买；买过的点「🎨 配色」可以随时换颜色（不花钱）' }),
+    tabs, list,
+  ]));
+  root.append(mask);
+}
+
+function homeItemBtn(room, item) {
+  const ow = ownedEntry(room.id, item.id);
+  const [x, y] = item.pos;
+  const pos = `left:${x}%; top:${y}%; z-index:${item.wall ? 40 : 10 + Math.round(y)}; transform:${item.wall ? 'translate(-50%,-50%)' : 'translate(-50%,-100%)'}`;
+  if (!ow) {
+    return el('button', {
+      class: 'home-item item-slot' + (item.big ? ' hi-big' : '') + (item.wall ? ' hi-wall' : ''),
+      style: pos, title: `还没买「${item.name}」— 点一下花 🔥${item.cost} 搬进来`,
+      onclick: () => buyHomeItem(room, item),
+    }, [
+      el('span', { class: 'hi-emoji', text: item.emoji }),
+      el('span', { class: 'hi-lock', text: `🔒🔥${item.cost}` }),
+    ]);
+  }
+  const colr = HOME_COLORS[ow.color] || HOME_COLORS.orig;
+  const glow = item.anim === 'glow' ? ' drop-shadow(0 0 10px rgba(255,205,80,0.95))' : '';
+  const kids = [el('span', { class: 'hi-emoji' + (item.anim && item.anim !== 'glow' ? ' hi-' + item.anim : ''), style: `filter:${colr.filter}${glow}`, text: item.emoji })];
+  if (!item.wall) kids.push(el('span', { class: 'hi-base', style: `background:${colr.hex}` }));
+  return el('button', {
+    class: 'home-item' + (item.big ? ' hi-big' : '') + (item.wall ? ' hi-wall' : ''),
+    style: pos, title: `${item.name}（点一下换颜色）`,
+    onclick: () => { Sound.tap(); openColorPop(room, item); },
+  }, kids);
+}
+
+async function buyHomeItem(room, item) {
+  Sound.click();
+  if (!confirm(`花 🔥${item.cost} 买「${item.name}」放进${room.name}吗？`)) return;
+  try {
+    const r = await api('/api/home/buy', { method: 'POST', body: { room: room.id, item: item.id } });
+    state.home.fire = r.fire; streak = r.fire; renderXp();
+    state.home.owned.push({ room: room.id, item: item.id, color: 'orig' });
+    Sound.star(); confettiBurst();
+    toast(`🎉 「${item.name}」搬进${room.name}啦！火力 -${item.cost}`, 2500);
+    renderMyHome();
+  } catch (e) {
+    Sound.wrong(); toast(e.message, 3000);
+    try {
+      state.home = await api('/api/home');
+      streak = state.home.fire; renderXp(); renderMyHome();
+    } catch { /* ignore */ }
+  }
+}
+
+function openColorPop(room, item) {
+  Sound.tap();
+  const ow = ownedEntry(room.id, item.id);
+  if (!ow) return;
+  const mask = el('div', { class: 'home-mask', onclick: (e) => { if (e.target === mask) mask.remove(); } });
+  const dots = el('div', { class: 'hp-dots' });
+  Object.keys(HOME_COLORS).forEach((key) => {
+    const c = HOME_COLORS[key];
+    dots.append(el('button', {
+      class: 'hp-dot' + (ow.color === key ? ' on' : ''), title: c.name, style: `background:${c.hex}`,
+      onclick: async () => {
+        Sound.pop();
+        try {
+          await api('/api/home/color', { method: 'POST', body: { room: room.id, item: item.id, color: key } });
+          ow.color = key;
+        } catch (e) { toast(e.message, 2500); }
+        mask.remove();
+        renderMyHome();
+      },
+    }));
+  });
+  const colr = HOME_COLORS[ow.color] || HOME_COLORS.orig;
+  mask.append(el('div', { class: 'home-pop' }, [
+    el('div', { class: 'hp-emoji', style: `filter:${colr.filter}`, text: item.emoji }),
+    el('h2', { text: `给「${item.name}」换个颜色` }),
+    dots,
+    el('button', { class: 'btn sm', onclick: () => mask.remove(), text: '关闭' }),
+  ]));
+  document.body.append(mask);
+}
 
 // ================================================================ IMPORT
 VIEWS.import = async (root) => {

@@ -77,7 +77,7 @@ main { max-width: 620px; margin: 0 auto; padding: 14px; }
   background: #fff; border-radius: 14px; padding: 10px; margin: 8px auto; max-width: 90%;
   position: relative; box-shadow: var(--shadow); color: var(--ink);
 }
-.quick-btns { display: flex; gap: 10px; margin: 8px 0; }
+.quick-btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
 .btn {
   border: none; border-radius: 14px; padding: 12px 16px; font-size: 1rem;
   background: var(--primary); color: #fff; font-weight: 700; box-shadow: var(--shadow);
@@ -245,3 +245,213 @@ textarea:focus, input:focus, select:focus { border-color: var(--primary); }
 .pg-chips { margin: 8px 0; }
 .pg-chips .chip { display: inline-flex; gap: 6px; align-items: center; }
 .pg-chips .chip .x { font-weight: 900; color: #c0392b; }
+
+/* ---------- my home (我的家) ---------- */
+.home-fire-card { text-align: center; background: linear-gradient(135deg,#fff,#fff3e0); }
+.home-fire-big { font-size: 1.6rem; font-weight: 800; color: #e8722a; margin-bottom: 4px; }
+.home-top { align-items: center; margin-bottom: 10px; }
+.fire-chip { background: #fff0dd; color: #e8722a; border-radius: 16px; padding: 4px 12px; font-weight: 800; white-space: nowrap; }
+
+/* ---- room scene: 墙带 + 地板，家具固定坐标摆放 ---- */
+.room-scene {
+  position: relative; overflow: hidden;
+  height: clamp(270px, 70vw, 350px);
+  border-radius: var(--radius); box-shadow: var(--shadow); border: 3px solid #fff;
+  margin-bottom: 14px; background: #fdf6ec;
+}
+.sc-wall, .sc-floor { position: absolute; left: 0; right: 0; pointer-events: none; }
+.sc-wall { top: 0; height: 36%; }
+.sc-floor {
+  top: 36%; bottom: 0;
+  box-shadow: inset 0 5px 0 rgba(255, 255, 255, 0.9), inset 0 14px 16px rgba(90, 70, 95, 0.12);
+}
+.sc-wall::before, .sc-wall::after, .sc-floor::before, .sc-floor::after { content: ''; position: absolute; }
+/* 窗户（默认每间墙的右侧） */
+.sc-wall::before {
+  right: 8%; top: 14%; width: 24%; height: 58%; border: 5px solid #fff; border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  background:
+    linear-gradient(to right, transparent calc(50% - 2px), #fff calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom, transparent calc(50% - 2px), #fff calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(165deg, #9fd6ff 0 55%, #cdeeb8 55% 72%, #a9dd96 72%);
+}
+/* 门（默认左侧） */
+.sc-wall::after {
+  left: 5%; bottom: 0; width: 14%; height: 80%;
+  border: 4px solid #fff; border-bottom: none; border-radius: 8px 8px 0 0;
+  background:
+    radial-gradient(circle at 88% 55%, #ffcf5e 0 4px, transparent 5px),
+    repeating-linear-gradient(0deg, transparent 0 34%, rgba(255, 255, 255, 0.4) 34% 36%),
+    linear-gradient(#ffdcae, #eec190);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+}
+/* 各房间的墙与地板 */
+.room-kitchen .sc-wall  { background: linear-gradient(#fffaef, #fcf1dc); }
+.room-kitchen .sc-wall::after { content: none; }
+.room-kitchen .sc-floor { background: conic-gradient(#ffeed6 0 25%, #ffddba 0 50%, #ffeed6 0 75%, #ffddba 0); background-size: 33.4% 45%; }
+.room-kitchen .sc-floor::after {
+  left: 6%; right: 20%; top: -15%; height: 30%;
+  border-top: 5px solid #caa06a; border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 4px 0 #fff7e6;
+  background: repeating-linear-gradient(90deg, #f8e6c6 0 46px, #f0ddb0 46px 50px);
+}
+.room-kitchen .sc-floor::before {
+  left: 32%; top: 40%; width: 30%; height: 26%; border-radius: 50%;
+  background: repeating-linear-gradient(90deg, #ffd9a6 0 12px, #ffc98e 12px 24px);
+  opacity: .85;
+}
+.room-living .sc-wall   { background: repeating-linear-gradient(90deg, rgba(255,255,255,0) 0 36px, rgba(255,255,255,.6) 36px 44px), linear-gradient(#ffe4f0 0 70%, #fff 70% 74%, #fff5f9 74%); }
+.room-living .sc-floor  { background: repeating-linear-gradient(0deg, #f0d3a8 0 26px, #e6c392 26px 29px); }
+.room-living .sc-floor::before {
+  left: 30%; top: 34%; width: 42%; height: 40%; border-radius: 50%;
+  background: radial-gradient(#ffd7e8 0 58%, #fbc0da 58%);
+}
+.room-bedroom .sc-wall  { background: linear-gradient(#ecefff 0 70%, #fff 70% 74%, #f5f7ff 74%); }
+.room-bedroom .sc-floor { background: repeating-linear-gradient(0deg, #f2ddc2 0 26px, #e9d0af 26px 29px); }
+.room-bedroom .sc-floor::after {
+  left: 52%; top: 11%; width: 10%; height: 11%;
+  border-top: 4px solid #caa06a; background: #e8cfa9; border-radius: 3px;
+}
+.room-bathroom .sc-wall {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 18px, #fff 18px 21px),
+    repeating-linear-gradient(90deg, transparent 0 26px, #fff 26px 29px),
+    linear-gradient(#e3f6ff, #d8f0fb);
+}
+.room-bathroom .sc-wall::before { border-radius: 50%; width: 17%; right: 2%; }
+.room-bathroom .sc-floor { background: conic-gradient(#e0f4fd 0 25%, #c6eafb 0 50%, #e0f4fd 0 75%, #c6eafb 0); background-size: 33.4% 45%; }
+.room-bathroom .sc-floor::before {
+  left: 66%; top: 72%; width: 24%; height: 14%; border-radius: 50%;
+  background: radial-gradient(rgba(150,210,240,.85), rgba(150,210,240,.3));
+}
+.room-study .sc-wall    { background: linear-gradient(#f6eedd 0 70%, #fff 70% 74%, #f9f3e7 74%); }
+.room-study .sc-floor   { background: repeating-linear-gradient(0deg, #dcbb8e 0 26px, #d2ac7c 26px 29px); }
+.room-study .sc-floor::after {
+  left: 31%; top: 8%; width: 30%; height: 14%;
+  border-top: 5px solid #b98a4e; background: #d9a86b; border-radius: 4px 4px 0 0;
+}
+.room-garden .sc-wall {
+  background:
+    radial-gradient(46px 30px at 26% 40%, #fff 0 22px, rgba(255,255,255,0) 23px),
+    radial-gradient(34px 22px at 31% 46%, #fff 0 17px, rgba(255,255,255,0) 18px),
+    linear-gradient(#bde9ff, #eaf9ff);
+}
+.room-garden .sc-wall::before {
+  right: 8%; top: 5%; width: 42px; height: 42px; border: none; border-radius: 50%;
+  background: #ffe37c; box-shadow: 0 0 20px 8px rgba(255, 216, 106, 0.7);
+}
+.room-garden .sc-wall::after {
+  left: 0; right: 0; width: auto; top: auto; bottom: 0; height: 52%;
+  border: none; border-radius: 0; box-shadow: none;
+  background:
+    linear-gradient(#fff, #fff) 0 58% / 100% 4px no-repeat,
+    linear-gradient(#fff, #fff) 0 86% / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, #fff 0 9px, rgba(255,255,255,0) 9px 36px);
+}
+.room-garden .sc-floor  {
+  background:
+    radial-gradient(circle at 22% 38%, #ffb0d0 0 3px, transparent 4px),
+    radial-gradient(circle at 62% 72%, #fff3a8 0 3px, transparent 4px),
+    radial-gradient(circle at 88% 30%, #ffb0d0 0 3px, transparent 4px),
+    conic-gradient(#cfeab2 0 25%, #c1e2a2 0 50%, #cfeab2 0 75%, #c1e2a2 0);
+  background-size: auto, auto, auto, 33.4% 45%;
+}
+
+/* 场景里的家具：绝对定位，脚底贴 y 基线，近大远小靠 z-index */
+.home-item {
+  position: absolute; background: none; border: none; padding: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; font-family: inherit;
+  font-size: clamp(1.9rem, 7.5vw, 2.7rem);
+}
+.hi-big { font-size: clamp(2.7rem, 10.5vw, 3.8rem); }
+.hi-emoji { font-size: 1em; line-height: 1.15; }
+.hi-base { width: 1.5em; height: .2em; border-radius: 50%; opacity: .8; margin-top: -.14em; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+.home-item:active .hi-emoji, .home-item:active .hi-base { transform: scale(.86); }
+/* 没买的：半透明虚位 + 小锁价格，点一下直接买 */
+.item-slot .hi-emoji { opacity: .3; filter: grayscale(.95); }
+.item-slot::after {
+  content: ''; width: 1.5em; height: .42em; margin-top: -.16em;
+  border: 2px dashed rgba(105, 85, 115, 0.5); border-radius: 50%; background: rgba(255, 255, 255, 0.28);
+}
+.hi-wall.item-slot::after { content: none; }
+.item-slot:hover .hi-emoji, .item-slot:active .hi-emoji { opacity: .6; }
+.hi-lock {
+  position: absolute; left: 55%; top: -.7em; font-size: .55rem; font-weight: 800;
+  color: #e8722a; background: #fff0dd; border: 1.5px solid #ffd9ae; border-radius: 10px;
+  padding: 1px 6px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+@keyframes hi-float { 50% { transform: translateY(-.14em); } }
+.hi-float { animation: hi-float 1.9s ease-in-out infinite; }
+@keyframes hi-flutter {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(1.1em, -.9em); }
+  50% { transform: translate(2.3em, -.2em); }
+  75% { transform: translate(.9em, .45em); }
+}
+.hi-flutter { animation: hi-flutter 6s ease-in-out infinite; }
+
+.shop-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px dashed #eed7ee; }
+.shop-row:last-child { border-bottom: none; }
+.shop-emoji { font-size: 2rem; width: 44px; text-align: center; flex: none; }
+.shop-name { flex: 1; font-weight: 700; }
+.cost-chip { background: #fff0dd; color: #e8722a; border-radius: 14px; padding: 3px 10px; font-weight: 800; font-size: 0.85rem; }
+.owned-chip { color: var(--accent); font-weight: 700; font-size: 0.85rem; }
+
+.home-mask { position: fixed; inset: 0; background: rgba(90,70,95,0.35); display: flex; align-items: center; justify-content: center; z-index: 30; }
+.home-pop { background: #fff; border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow); text-align: center; max-width: 300px; }
+.home-pop h2 { font-size: 1rem; margin: 6px 0 4px; }
+.hp-emoji { font-size: 3rem; }
+.hp-dots { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 12px 0; }
+.hp-dot { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.hp-dot.on { outline: 3px solid var(--primary); }
+
+/* ---------- home: dollhouse + room scenes + shop drawer ---------- */
+.house-tip { display: block; text-align: center; margin-bottom: 10px; }
+.dollhouse { display: grid; grid-template-columns: 1fr 1.45fr 1fr; grid-auto-rows: auto; gap: 7px; }
+.roof {
+  grid-column: 1 / -1; height: 26px; border-radius: 12px 12px 4px 4px;
+  background: repeating-linear-gradient(90deg, #f2686d 0 13px, #ff9d9d 13px 26px);
+  box-shadow: 0 4px 10px rgba(220, 120, 120, 0.25);
+}
+.room-tile {
+  position: relative; border: 3px solid #fff; border-radius: 12px; overflow: hidden;
+  min-height: 96px; padding: 7px 9px; text-align: left; box-shadow: var(--shadow);
+  font-family: inherit; cursor: pointer;
+}
+.room-tile:active { transform: scale(0.95); }
+.room-tile::before {
+  content: ''; position: absolute; right: 9px; top: 9px; width: 26px; height: 20px; pointer-events: none;
+  border: 3px solid #fff; border-radius: 6px; background: linear-gradient(135deg, #cfeeff, #f4fcff);
+}
+.area-bathroom.room-tile::before { width: 24px; height: 24px; border-radius: 50%; border-color: #fff; background: #d8f3ff; }
+.tile-name { font-weight: 800; font-size: 0.9rem; }
+.tile-count { position: absolute; right: 8px; bottom: 6px; font-size: 0.68rem; color: var(--sub); font-weight: 800; }
+.tile-items { position: absolute; left: 9px; right: 38px; bottom: 5px; display: flex; flex-wrap: wrap; gap: 0 3px; font-size: 1.15rem; line-height: 1.3; }
+.tile-empty { font-size: 0.7rem; color: rgba(91, 74, 94, 0.45); font-weight: 700; }
+.area-bedroom { grid-row: 2; grid-column: 1; }
+.area-study { grid-row: 2; grid-column: 3; }
+.area-living { grid-row: 2 / 4; grid-column: 2; }
+.area-bathroom { grid-row: 3; grid-column: 1; }
+.area-kitchen { grid-row: 3; grid-column: 3; }
+.area-garden { grid-row: 4; grid-column: 1 / -1; min-height: 66px; }
+
+.room-kitchen { background: linear-gradient(#fff7ea 0 56%, #ffe3c4 56%); }
+.room-living   { background: linear-gradient(#fff0f7 0 56%, #ead4f2 56%); }
+.room-bedroom  { background: linear-gradient(#f1f3ff 0 56%, #d5ddff 56%); }
+.room-bathroom { background: linear-gradient(#e9faff 0 56%, #c5ecfa 56%); }
+.room-study    { background: linear-gradient(#f3edff 0 56%, #e7d8c6 56%); }
+.room-garden   { background: linear-gradient(#e5f6ff 0 52%, #cdeed2 52%); }
+.room-scene.room-kitchen, .room-scene.room-living, .room-scene.room-bedroom,
+.room-scene.room-bathroom, .room-scene.room-study, .room-scene.room-garden { background: #fdf6ec; }
+
+.shop-mask { position: fixed; inset: 0; background: rgba(90, 70, 95, 0.32); z-index: 20; }
+.shop-panel {
+  position: fixed; top: 10px; right: 10px; bottom: 10px; width: min(340px, 92vw);
+  background: #fff; border-radius: 18px; box-shadow: var(--shadow);
+  padding: 14px 16px; overflow-y: auto; animation: shopin 0.18s ease-out;
+}
+@keyframes shopin { from { transform: translateX(26px); opacity: 0.3; } }
+.shop-panel h2 { font-size: 1.05rem; }
+.shop-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.shop-tab { border: 1.5px solid #eed7ee; background: #faf6fb; border-radius: 99px; padding: 4px 10px; font-size: 0.82rem; font-weight: 700; color: var(--sub); }
+.shop-tab.on { background: var(--primary); border-color: var(--primary); color: #fff; }

@@ -7,6 +7,7 @@ const sharp = require('sharp');
 const { db, setSetting, getSetting } = require('./lib/db');
 const diff = require('./lib/difficulty');
 const sglang = require('./lib/sglang');
+const home = require('./lib/home');
 const cfg = require('./lib/config');
 
 const app = express();
@@ -415,6 +416,43 @@ app.post('/api/xp', (req, res) => {
   setSetting('xp', xp);
   setSetting('level', level);
   res.json({ xp, level });
+});
+
+// ---------------------------------------------------------------- my home (我的家)
+app.get('/api/home', (_req, res) => {
+  const owned = db.prepare('SELECT room, item, color FROM home_items').all();
+  res.json({ fire: Number(getSetting('streak', 0)), rooms: home.ROOMS, owned });
+});
+
+// POST /api/home/buy  { room, item }  -- spend 火力 (streak) to buy an item
+app.post('/api/home/buy', (req, res) => {
+  const { room, item } = req.body || {};
+  const found = home.findItem(String(room || ''), String(item || ''));
+  if (!found) return res.status(404).json({ error: '没有这个东西' });
+  if (db.prepare('SELECT 1 FROM home_items WHERE room=? AND item=?').get(room, item)) {
+    return res.status(409).json({ error: '已经买过啦' });
+  }
+  const fire = Number(getSetting('streak', 0));
+  if (fire < found.item.cost) {
+    return res.status(400).json({ error: `🔥 火力不够（需要 ${found.item.cost}，现在有 ${fire}），去做测验攒火力吧！` });
+  }
+  db.transaction(() => {
+    setSetting('streak', fire - found.item.cost);
+    db.prepare('INSERT INTO home_items (room, item) VALUES (?,?)').run(found.room.id, found.item.id);
+  })();
+  res.json({ ok: true, fire: fire - found.item.cost });
+});
+
+// POST /api/home/color  { room, item, color }
+app.post('/api/home/color', (req, res) => {
+  const { room, item, color } = req.body || {};
+  const found = home.findItem(String(room || ''), String(item || ''));
+  if (!found) return res.status(404).json({ error: '没有这个东西' });
+  if (!home.COLORS.includes(String(color))) return res.status(400).json({ error: '颜色无效' });
+  const info = db.prepare('UPDATE home_items SET color=? WHERE room=? AND item=?')
+    .run(String(color), room, item);
+  if (!info.changes) return res.status(404).json({ error: '还没有买过这个东西' });
+  res.json({ ok: true });
 });
 
 // ---------------------------------------------------------------- static + serve
