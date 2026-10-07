@@ -38,7 +38,7 @@ cp config.example.json config.json   # then edit for your machine
 | `lanIp` | LAN address printed at startup (just a hint line) |
 | `dbPath` | SQLite database location, default `.db/vocab.db` |
 | `nickname` | Name the mascot greets you with on the home page, default `卡皮巴拉` |
-| `sglang.baseUrl` | Model API base URL (OpenAI-compatible), default `http://127.0.0.1:8888/v1` |
+| `sglang.baseUrl` | Model API base URL (OpenAI-compatible), default `http://127.0.0.1:8000/v1` |
 | `sglang.model` | Model name; leave empty to auto-detect via `/models` |
 | `sglang.dir` | Directory containing your model start/stop scripts (for one-click control in the UI); leave empty to disable |
 | `sglang.startScript` / `stopScript` | Script file names inside `sglang.dir` |

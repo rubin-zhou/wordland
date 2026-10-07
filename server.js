@@ -85,7 +85,8 @@ app.post('/api/model/service/start', (_req, res) => {
     }
     if (!SGLANG_DIR) throw new Error('未配置 sglang.dir（在 config.json 中设置模型启动脚本所在目录）');
     const out = fs.openSync(SGLANG_LOG, 'a');
-    const proc = spawn('bash', [cfg.sglang.startScript], { cwd: SGLANG_DIR, env: SVC_ENV, detached: true, stdio: ['ignore', out, out] });
+    const parts = cfg.sglang.startScript.split(/\s+/);
+    const proc = spawn('bash', parts, { cwd: SGLANG_DIR, env: SVC_ENV, detached: true, stdio: ['ignore', out, out] });
     fs.closeSync(out);
     proc.on('exit', () => { try { fs.unlinkSync(SGLANG_PID_FILE); } catch { /* ignore */ } });
     proc.unref();
@@ -99,7 +100,7 @@ app.post('/api/model/service/start', (_req, res) => {
 
 app.post('/api/model/service/stop', (_req, res) => {
   if (!SGLANG_DIR) return res.status(400).json({ error: '未配置 sglang.dir' });
-  execFile('bash', [cfg.sglang.stopScript], { cwd: SGLANG_DIR, env: SVC_ENV, timeout: 90000 }, (err, out, errOut) => {
+  execFile('bash', cfg.sglang.stopScript.split(/\s+/), { cwd: SGLANG_DIR, env: SVC_ENV, timeout: 90000 }, (err, out, errOut) => {
     try { fs.unlinkSync(SGLANG_PID_FILE); } catch { /* ignore */ }
     svc.startingAt = 0;
     if (err) return res.status(500).json({ error: String(errOut || out || err.message).slice(0, 300) });

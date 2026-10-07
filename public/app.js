@@ -75,6 +75,51 @@ const MASCOTS = {
 let mascotIdx = 0;
 function mascotCycle() { mascotIdx++; }
 
+// 首页河狸：左右散步，转向时整体翻转，走路时身体摆动+两脚交替迈步
+let walkToken = 0;
+function startMascotWalk(stage) {
+  const walker = stage.querySelector('.mascot-walker');
+  const flipEl = stage.querySelector('.mascot-flip');
+  const token = ++walkToken;
+  const W = () => Math.max(160, stage.clientWidth);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  let x = W() * 0.18;
+  let sx = 1, targetSx = 1, target = x, speed = 90, flipFrom = 1, flipStart = 0;
+  let phase = 'idle', until = performance.now() + rand(900, 1800), last = performance.now();
+  walker.style.left = x + 'px';
+  const tick = (now) => {
+    if (walkToken !== token || !document.body.contains(walker)) return;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (phase === 'idle') {
+      if (now >= until) {
+        const maxX = Math.max(12, W() - walker.offsetWidth - 12);
+        target = rand(12, maxX);
+        if (Math.abs(target - x) < 24) { until = now + 900; requestAnimationFrame(tick); return; }
+        targetSx = target > x ? -1 : 1; // 🦫 原生朝左，向右走时翻转
+        if (targetSx !== sx) { phase = 'flip'; flipFrom = sx; flipStart = now; }
+        else { phase = 'walk'; walker.classList.add('walk'); speed = rand(72, 128); }
+      }
+    } else if (phase === 'flip') {
+      const p = Math.min(1, (now - flipStart) / 300);
+      sx = flipFrom * Math.cos(p * Math.PI); // 1 → 0 → -1，整个“转过来”
+      if (p >= 1) { sx = targetSx; phase = 'walk'; walker.classList.add('walk'); speed = rand(72, 128); }
+    } else if (phase === 'walk') {
+      x += (targetSx === -1 ? speed : -speed) * dt;
+      if ((targetSx === -1 && x >= target) || (targetSx === 1 && x <= target)) {
+        x = target;
+        phase = 'idle';
+        walker.classList.remove('walk');
+        until = now + rand(1500, 3600);
+      }
+    }
+    flipEl.style.transform = `scaleX(${sx})`;
+    walker.style.left = x + 'px';
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 // ---------------------------------------------------------------- gamification
 let xp = 0, level = 1, streak = 0;
 function renderXp() {
@@ -108,10 +153,18 @@ VIEWS.home = async (root) => {
   const st = await api('/api/stats');
   state.stats = st; xp = st.xp; level = st.level; streak = st.streak; renderXp();
   const emoji = MASCOTS.capybara[mascotIdx % 3];
+  const stage = el('div', { class: 'mascot-stage' }, [
+    el('div', { class: 'mascot-walker' }, [
+      el('div', { class: 'mascot-flip' }, [
+        el('div', { class: 'mascot-body', text: emoji }),
+      ]),
+    ]),
+  ]);
   root.append(el('div', { class: 'card mascot-card' }, [
-    el('div', { class: 'mascot-big', text: emoji }),
     el('div', { class: 'mascot-speech', text: `你好呀${esc(state.stats?.nickname || '卡皮巴拉')}！今天也要加油背单词哦~ 💪` }),
+    stage,
   ]));
+  startMascotWalk(stage);
 
   const todayPlan = el('div', { class: 'card' }, [
     el('h2', { text: '🗓️ 今日计划' }),
