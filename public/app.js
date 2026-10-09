@@ -1089,7 +1089,9 @@ function renderQuestion(root) {
   } else {
     root.append(el('div', { class: 'prompt', text: '看到中文，把英文单词拼出来吧！' }));
     if (w.meaning_cn) {
-      root.append(el('div', { class: 'big-word', text: w.meaning_cn }));
+      const cnWord = el('div', { class: 'big-word speakable', text: w.meaning_cn, title: '点击朗读（普通话）' });
+      cnWord.addEventListener('click', (e) => { e.stopPropagation(); speakWord(w.meaning_cn, 'zh-CN'); });
+      root.append(cnWord);
       root.append(el('input', { id: 'spellInput', class: 'spell-input', placeholder: '输入英文单词', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', onkeydown: (e) => { if (e.key === 'Enter') submitSpelling(); } }));
       root.append(el('button', { class: 'btn big', onclick: () => submitSpelling(), text: '✔️ 确认' }));
     } else {
